@@ -46,19 +46,26 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     """
     shared = config['shared']
     app = config['apps'][app_name]
-    result = {}
+    result = {'target': target}
 
     # DB ──────────────────────────────────────────────────────────────────────
     db = resolve_db(app.get('db'), target)
     if db is not None:
         result['db'] = db
 
+    # Deploy ──────────────────────────────────────────────────────────────────
+    # Merge shared.targets[target] (ftp_host, ssh_host, web_root, …) with
+    # per-app deploy[target] (ftp_base_dir, dest, sync_dirs, …).
+    shared_target = (shared.get('targets') or {}).get(target, {}) or {}
+    app_deploy = (app.get('deploy') or {}).get(target, {}) or {}
+    deploy_block = {**shared_target, **app_deploy}
+    if deploy_block:
+        result['deploy'] = deploy_block
+
     # Auth DB ─────────────────────────────────────────────────────────────────
     auth_db = app.get('auth_db')
-    if auth_db == 'shared':
-        result['auth_db'] = shared['auth_db']
-    elif auth_db is not None:
-        result['auth_db'] = auth_db
+    if auth_db is not None:
+        result['auth_db'] = resolve_db(auth_db, target)
 
     # SMTP: shared credentials + app overrides (from, from_name, or full server)
     smtp = dict(shared['smtp'])
