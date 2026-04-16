@@ -56,9 +56,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.s_buttons        TO 'suche'@
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.s_feeds          TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.s_db_migrations  TO 'suche'@'localhost';
 
-GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_accounts      TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_blacklist      TO 'suche'@'localhost';
-GRANT SELECT, INSERT         ON jardyx_auth.auth_log            TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE ON jardyx_auth.password_resets     TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_accounts       TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx_auth.auth_blacklist       TO 'suche'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx_auth.auth_log             TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx_auth.password_resets      TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_invite_tokens   TO 'suche'@'localhost';
 
 FLUSH PRIVILEGES;
