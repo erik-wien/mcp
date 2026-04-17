@@ -45,14 +45,12 @@ FIXTURE = {
                 'user': 'flatdb_user',
                 'password': 'db_secret',
             },
-            'smtp': {
-                'from': 'flatdb@example.com',
-                'from_name': 'FlatDB',
-            },
             'slack': {
                 'channel_id': 'C12345',
             },
             'app': {
+                'name': 'FlatDB',
+                'support_email': 'contact@example.com',
                 'base_url': {
                     'local': 'http://localhost/flatdb',
                     'akadbrain': 'https://flatdb.example.com',
@@ -72,27 +70,14 @@ FIXTURE = {
                 'local': {'host': 'localhost', 'name': 'mdb', 'user': 'mu', 'password': 'mp'},
                 'world4you': {'host': 'remotehost', 'name': 'remdb', 'user': 'ru', 'password': 'rp'},
             },
-            'auth_db': 'shared',
-            'smtp': {'from': 'multidb@example.com', 'from_name': 'MultiDB'},
             'app': {
+                'name': 'MultiDB',
+                'support_email': 'contact@example.com',
                 'base_url': {
                     'local': 'http://localhost/multidb',
                     'world4you': 'https://example.com/multidb',
                 },
             },
-        },
-        'ownsmtp': {
-            'targets': ['local'],
-            'deploy': {'local': {'dest': '/var/www/ownsmtp'}},
-            'smtp': {
-                'host': 'smtp.other.com',
-                'port': 465,
-                'user': 'own_user',
-                'password': 'own_pass',
-                'from': 'own@other.com',
-                'from_name': 'OwnSMTP',
-            },
-            'app': {'base_url': {'local': 'http://localhost/ownsmtp'}},
         },
         'ownauth': {
             'targets': ['local'],
@@ -104,8 +89,11 @@ FIXTURE = {
                 'user': 'ownauth_user',
                 'password': 'ownauth_pass',
             },
-            'smtp': {'from': 'ownauth@example.com', 'from_name': 'OwnAuth'},
-            'app': {'base_url': {'local': 'http://localhost/ownauth'}},
+            'app': {
+                'name': 'OwnAuth',
+                'support_email': 'contact@example.com',
+                'base_url': {'local': 'http://localhost/ownauth'},
+            },
         },
     },
 }
@@ -134,23 +122,22 @@ def test_resolve_db_none_when_no_db():
 
 # ── resolve_app_config ─────────────────────────────────────────────────────────
 
-def test_smtp_merges_shared_credentials():
+def test_smtp_not_in_output():
     result = resolve_app_config(FIXTURE, 'flatdb', 'local')
-    assert result['smtp']['host'] == 'smtp.example.com'
-    assert result['smtp']['password'] == 'smtp_pass'
-    assert result['smtp']['from'] == 'flatdb@example.com'
-    assert result['smtp']['from_name'] == 'FlatDB'
-
-def test_smtp_app_overrides_shared_server():
-    result = resolve_app_config(FIXTURE, 'ownsmtp', 'local')
-    assert result['smtp']['host'] == 'smtp.other.com'
-    assert result['smtp']['user'] == 'own_user'
-    assert result['smtp']['password'] == 'own_pass'
+    assert 'smtp' not in result
 
 def test_slack_merges_bot_token_and_channel_id():
     result = resolve_app_config(FIXTURE, 'flatdb', 'local')
     assert result['slack']['bot_token'] == 'xoxb-test-token'
     assert result['slack']['channel_id'] == 'C12345'
+
+def test_app_name_in_output():
+    result = resolve_app_config(FIXTURE, 'flatdb', 'local')
+    assert result['app']['name'] == 'FlatDB'
+
+def test_app_support_email_in_output():
+    result = resolve_app_config(FIXTURE, 'flatdb', 'local')
+    assert result['app']['support_email'] == 'contact@example.com'
 
 def test_base_url_resolved_for_local():
     result = resolve_app_config(FIXTURE, 'flatdb', 'local')
@@ -175,11 +162,6 @@ def test_per_target_db_world4you():
     assert result['db']['host'] == 'remotehost'
     assert result['db']['name'] == 'remdb'
 
-def test_auth_db_shared():
-    result = resolve_app_config(FIXTURE, 'multidb', 'local')
-    assert result['auth_db']['name'] == 'shared_auth'
-    assert result['auth_db']['user'] == 'auth_user'
-
 def test_auth_db_own():
     result = resolve_app_config(FIXTURE, 'ownauth', 'local')
     assert result['auth_db']['user'] == 'ownauth_user'
@@ -192,7 +174,6 @@ def test_extra_sections_pass_through():
 def test_internal_keys_not_in_output():
     result = resolve_app_config(FIXTURE, 'flatdb', 'local')
     assert 'targets' not in result
-    assert 'deploy' not in result
     assert 'legacy_config' not in result
 
 
@@ -218,10 +199,9 @@ def test_sanitize_nested_dict():
     resolved = resolve_app_config(FIXTURE, 'flatdb', 'local')
     example = sanitize(resolved)
     assert example['db']['password'] == 'your_password'
-    assert example['smtp']['password'] == 'your_password'
     assert example['slack']['bot_token'] == 'your_bot_token'
-    assert example['smtp']['host'] == 'smtp.example.com'
     assert example['app']['base_url'] == 'http://localhost/flatdb'
+    assert example['app']['name'] == 'FlatDB'
 
 
 # ── generate_update_md ─────────────────────────────────────────────────────────

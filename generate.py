@@ -67,20 +67,20 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     if auth_db is not None:
         result['auth_db'] = resolve_db(auth_db, target)
 
-    # SMTP: shared credentials + app overrides (from, from_name, or full server)
-    smtp = dict(shared['smtp'])
-    smtp.update(app.get('smtp', {}))
-    result['smtp'] = smtp
-
     # Slack: shared bot_token + app channel_id ────────────────────────────────
     if 'slack' in shared or 'slack' in app:
         slack = dict(shared.get('slack', {}))
         slack.update(app.get('slack', {}))
         result['slack'] = slack
 
-    # App section: resolve base_url for target ────────────────────────────────
+    # App section: name, support_email, base_url for target ──────────────────
+    app_block = app.get('app', {}) or {}
     app_section = {}
-    base_url = app.get('app', {}).get('base_url')
+    if 'name' in app_block:
+        app_section['name'] = app_block['name']
+    if 'support_email' in app_block:
+        app_section['support_email'] = app_block['support_email']
+    base_url = app_block.get('base_url')
     if isinstance(base_url, dict):
         app_section['base_url'] = base_url.get(target, base_url.get('local'))
     elif base_url is not None:

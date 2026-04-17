@@ -71,6 +71,10 @@ info "Target : $TARGET"
 info "Apps   : ${APPS[*]}"
 echo
 
+info "── shared mail config ──────────────────────────────────────"
+python3 "$MCP" --mail-ini "$TARGET" || warn "jardyx-mail.ini write failed — apps may not send mail"
+echo
+
 FAILED=()
 
 for app in "${APPS[@]}"; do
