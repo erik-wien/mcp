@@ -2,3 +2,11 @@ config.yaml
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Personal / agent workflow — not for publication
+CLAUDE.md
+.claude/
+docs/superpowers/
+update.md
+.env
+.env.*
