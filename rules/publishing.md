@@ -42,12 +42,26 @@ Rule content that is useful to other developers (design system, auth conventions
 
 Personal agent-workflow rules (written for a Claude session rather than a human contributor) stay in `~/.claude/rules/` and are never copied into a repo.
 
+## Documentation is a prerequisite
+
+Before publishing any repo to GitHub (first push, visibility flip from private → public, or a significant feature release on an already-public repo), the documentation must be up to date:
+
+- **Every app and library has a `README.md`** at its root. No exceptions — a silent "what is this repo" is unacceptable for a public repo.
+- The README covers: what the repo is, tech stack, quick start / installation, how to run tests (if any), how to deploy, and links to deeper docs.
+- `docs/` (specs, architecture, API references) reflects the current state of the code, not a prior iteration.
+- Cross-repo references in READMEs point to GitHub URLs (`https://github.com/erik-wien/...`) rather than local paths (`~/Git/...`, `~/.claude/rules/...`) — readers clone from GitHub, not from your home directory.
+- If the repo implements conventions codified elsewhere (design system, auth conventions), the README links to those convention docs on GitHub.
+
+Treat README + `docs/` as part of the publishing artifact, not an afterthought. A repo without a README is not ready to publish.
+
 ## Before pushing a new repo
 
 Checklist:
 
-1. `git ls-files | grep -E '^(CLAUDE\.md$|\.claude/|docs/superpowers/|update\.md$)'` — must be empty.
-2. `cat .gitignore` — must cover every entry in the "Never publish" table above.
-3. `git log --all -- CLAUDE.md .claude docs/superpowers update.md` — must be empty for *new* public repos; for already-public repos with a dirty history, rewrite with `git filter-repo --invert-paths --path CLAUDE.md --path .claude --path docs/superpowers --path update.md` before force-pushing.
-4. `git grep -i 'password\s*=' -- '*.php' '*.yaml' '*.ini'` — verify no hardcoded credentials in source.
-5. `gh repo view <user>/<repo> --json visibility` — confirm the visibility you expect before the first push.
+1. README.md exists and is current (see "Documentation is a prerequisite" above).
+2. `docs/` (where present) matches the current code.
+3. `git ls-files | grep -E '^(CLAUDE\.md$|\.claude/|docs/superpowers/|update\.md$)'` — must be empty.
+4. `cat .gitignore` — must cover every entry in the "Never publish" table above.
+5. `git log --all -- CLAUDE.md .claude docs/superpowers update.md` — must be empty for *new* public repos; for already-public repos with a dirty history, rewrite with `git filter-repo --invert-paths --path CLAUDE.md --path .claude --path docs/superpowers --path update.md` before force-pushing.
+6. `git grep -i 'password\s*=' -- '*.php' '*.yaml' '*.ini'` — verify no hardcoded credentials in source.
+7. `gh repo view <user>/<repo> --json visibility` — confirm the visibility you expect before the first push.
