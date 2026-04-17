@@ -14,6 +14,7 @@ GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_accounts      TO 'simplechat'@'
 GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_blacklist      TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT         ON jardyx_auth.auth_log            TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT, UPDATE ON jardyx_auth.password_resets     TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_remember_tokens TO 'simplechat'@'localhost';
 
 -- ── wlmonitor ─────────────────────────────────────────────────────────────────
 -- App DB: wlmonitor (full). Auth: jardyx_auth (full — has registration/invites).
@@ -29,6 +30,7 @@ GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_accounts      TO 'zeiterfassung
 GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_blacklist      TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT         ON jardyx_auth.auth_log            TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE ON jardyx_auth.password_resets     TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_remember_tokens TO 'zeiterfassung'@'localhost';
 
 -- ── energie ───────────────────────────────────────────────────────────────────
 -- App DB: energie (full). Auth: jardyx_auth (currently missing — adding now).
@@ -38,6 +40,7 @@ GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_accounts      TO 'energie'@'loc
 GRANT SELECT, INSERT, UPDATE ON jardyx_auth.auth_blacklist      TO 'energie'@'localhost';
 GRANT SELECT, INSERT         ON jardyx_auth.auth_log            TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE ON jardyx_auth.password_resets     TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_remember_tokens TO 'energie'@'localhost';
 
 -- ── suche ─────────────────────────────────────────────────────────────────────
 -- No separate app DB. All three new tables (s_buttons, s_feeds, s_db_migrations)
@@ -61,5 +64,6 @@ GRANT SELECT, INSERT, UPDATE         ON jardyx_auth.auth_blacklist       TO 'suc
 GRANT SELECT, INSERT                 ON jardyx_auth.auth_log             TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE         ON jardyx_auth.password_resets      TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_invite_tokens   TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx_auth.auth_remember_tokens TO 'suche'@'localhost';
 
 FLUSH PRIVILEGES;
