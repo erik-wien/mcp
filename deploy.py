@@ -38,12 +38,21 @@ def run_generate(app: str, target: str) -> None:
 
 # ── Deploy dispatch ───────────────────────────────────────────────────────────
 
-def get_deploy_method(config: dict, target: str) -> str:
-    """Return 'ftp', 'rsync_ssh', or 'rsync_local'."""
+def get_deploy_method(config: dict, app: str, target: str) -> str:
+    """Return 'ftp', 'rsync_ssh', or 'rsync_local'.
+
+    If the target supports both FTP and SSH (world4you does), prefer SSH when
+    the app ships a scripts/ssh_deploy.php. Otherwise fall back to FTP.
+    """
     target_cfg = config['shared']['targets'].get(target, {})
-    if 'ftp_host' in target_cfg:
+    has_ssh = 'ssh_host' in target_cfg
+    has_ftp = 'ftp_host' in target_cfg
+    ssh_deploy_php = APPS_ROOT / app / 'scripts' / 'ssh_deploy.php'
+    if has_ssh and ssh_deploy_php.exists():
+        return 'rsync_ssh'
+    if has_ftp:
         return 'ftp'
-    if 'ssh_host' in target_cfg:
+    if has_ssh:
         return 'rsync_ssh'
     return 'rsync_local'
 
@@ -55,8 +64,19 @@ def deploy_rsync_local(config: dict, app: str, target: str) -> None:
 
 
 def deploy_rsync_ssh(config: dict, app: str, target: str) -> None:
-    dest = config['apps'][app]['deploy'][target]['dest']
     src = str(APPS_ROOT / app)
+    # When the app ships scripts/ssh_deploy.php, rsync.sh delegates to it and
+    # ignores dest/ssh_* args — so we don't need them here either. The per-app
+    # script reads everything (including the remote path) from its own
+    # config.yaml.
+    ssh_deploy_php = APPS_ROOT / app / 'scripts' / 'ssh_deploy.php'
+    if ssh_deploy_php.exists():
+        subprocess.run(
+            ['bash', str(LIB / 'rsync.sh'), 'ssh', src, '__delegated__'],
+            check=True,
+        )
+        return
+    dest = config['apps'][app]['deploy'][target]['dest']
     t = config['shared']['targets'][target]
     subprocess.run(
         ['bash', str(LIB / 'rsync.sh'), 'ssh', src, dest,
@@ -86,14 +106,26 @@ def run_migrations(app: str) -> None:
 
 
 def do_deploy(config: dict, app: str, target: str) -> None:
-    method = get_deploy_method(config, target)
+    method = get_deploy_method(config, app, target)
     if method == 'ftp':
         deploy_ftp(config, app, target)
+        # lib/ftp.sh delegates to scripts/ftp_deploy.php when present, which
+        # runs its own remote migrations via an HTTP runner. Only call
+        # run_migrations for the generic lftp-mirror path — otherwise the
+        # local migrate.php would try to hit a MySQL host that isn't
+        # reachable from the developer machine.
+        if not (APPS_ROOT / app / 'scripts' / 'ftp_deploy.php').exists():
+            run_migrations(app)
     elif method == 'rsync_ssh':
         deploy_rsync_ssh(config, app, target)
+        # rsync_ssh delegates to scripts/ssh_deploy.php when present, which
+        # runs its own remote migrations over SSH. Only call run_migrations
+        # for the generic lib/rsync.sh path.
+        if not (APPS_ROOT / app / 'scripts' / 'ssh_deploy.php').exists():
+            run_migrations(app)
     else:
         deploy_rsync_local(config, app, target)
-    run_migrations(app)
+        run_migrations(app)
 
 
 # ── CLI mode ──────────────────────────────────────────────────────────────────
@@ -118,7 +150,12 @@ def cli_deploy(app: str, target: str) -> None:
     print(f'\n→ Generating config: {app} ({target})...')
     run_generate(app, target)
     print(f'→ Deploying {app} → {target}...')
-    do_deploy(config, app, target)
+    try:
+        do_deploy(config, app, target)
+    finally:
+        if target != 'local':
+            print(f'→ Restoring local config: {app}...')
+            run_generate(app, 'local')
     print(f'\n✓ Done: {app} → {target}')
 
 

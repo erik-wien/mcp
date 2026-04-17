@@ -57,6 +57,17 @@ case "$MODE" in
         ;;
 
     ssh)
+        # Per-app override: delegate the whole deploy (composer dance, rsync,
+        # remote migrations) to <app>/scripts/ssh_deploy.php if present. Mirrors
+        # lib/ftp.sh, which delegates to <app>/scripts/ftp_deploy.php.
+        SSH_DEPLOY_PHP="$SRC/scripts/ssh_deploy.php"
+        if [[ -f "$SSH_DEPLOY_PHP" ]]; then
+            info "Using $(basename "$SRC")/scripts/ssh_deploy.php ..."
+            php "$SSH_DEPLOY_PHP"
+            ok "SSH deploy complete via ssh_deploy.php"
+            exit 0
+        fi
+
         SSH_USER="${4:?missing ssh_user}"
         SSH_HOST="${5:?missing ssh_host}"
         SSH_KEY="${6:-}"
