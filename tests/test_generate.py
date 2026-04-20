@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import copy
 import pytest
 from generate import resolve_app_config, resolve_db, sanitize, generate_update_md
 
@@ -85,7 +86,7 @@ FIXTURE = {
             'db': {'host': 'localhost', 'name': 'ownauth', 'user': 'u', 'password': 'p'},
             'auth_db': {
                 'socket': '/tmp/mysql.sock',
-                'name': 'jardyx_auth',
+                'name': 'auth',
                 'user': 'ownauth_user',
                 'password': 'ownauth_pass',
             },
@@ -175,6 +176,16 @@ def test_internal_keys_not_in_output():
     result = resolve_app_config(FIXTURE, 'flatdb', 'local')
     assert 'targets' not in result
     assert 'legacy_config' not in result
+
+def test_app_color_passthrough():
+    fixture = copy.deepcopy(FIXTURE)
+    fixture['apps']['flatdb']['app']['color'] = '#d6a733'
+    result = resolve_app_config(fixture, 'flatdb', 'local')
+    assert result['app']['color'] == '#d6a733'
+
+def test_app_color_absent_when_not_set():
+    result = resolve_app_config(FIXTURE, 'flatdb', 'local')
+    assert 'color' not in result.get('app', {})
 
 
 # ── sanitize ───────────────────────────────────────────────────────────────────

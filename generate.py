@@ -80,6 +80,8 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
         app_section['name'] = app_block['name']
     if 'support_email' in app_block:
         app_section['support_email'] = app_block['support_email']
+    if 'color' in app_block:
+        app_section['color'] = app_block['color']
     base_url = app_block.get('base_url')
     if isinstance(base_url, dict):
         app_section['base_url'] = base_url.get(target, base_url.get('local'))
