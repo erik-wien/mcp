@@ -1,6 +1,10 @@
 -- grant-db-users.sql
 -- Idempotent: safe to re-run on localhost and akadbrain.
 -- Run as root: mysql -uroot < deploy/scripts/grant-db-users.sql
+
+-- CREATE PROCEDURE below needs a current database even though all references
+-- are fully qualified. Any DB works; `auth` always exists by this point.
+USE auth;
 --
 -- Each app gets its own user with minimal grants:
 --   - App DB: full access (own data)
@@ -9,6 +13,17 @@
 -- Per auth-rules §8, no app gets DELETE on auth.auth_accounts — deletion flows
 -- through admin_delete_user(). REVOKEs below clean up over-broad grants that
 -- earlier revisions of this file may have applied.
+
+-- ── Create users (idempotent) ─────────────────────────────────────────────────
+-- All six app users are created here so the GRANT statements below cannot fail
+-- with ERROR 1133 on a clean-slate install. Passwords match mcp/config.yaml —
+-- when a password is rotated there, update it here too.
+
+CREATE USER IF NOT EXISTS 'simplechat'@'localhost'    IDENTIFIED BY 'ZRHSwxyj8LIi7RbG';
+CREATE USER IF NOT EXISTS 'wlmonitor'@'localhost'     IDENTIFIED BY 'sopdi9-nyKnyb-zyqpyh';
+CREATE USER IF NOT EXISTS 'zeiterfassung'@'localhost' IDENTIFIED BY 'CfgnWHMYiQYPU17Cg8KN80pO';
+CREATE USER IF NOT EXISTS 'energie'@'localhost'       IDENTIFIED BY 'sopdi9-nyKnyb-zyqpyh';
+-- suche + lastfm created further down, next to their section-specific stub tables.
 
 -- ── Revoke over-broad legacy grants ───────────────────────────────────────────
 -- Wrapped in a stored procedure so the REVOKE is a no-op on fresh DBs where
