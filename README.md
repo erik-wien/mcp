@@ -1,6 +1,6 @@
 # mcp — deploy system
 
-Central configuration, generation and deployment entry point for every app in the Jardyx / eriks.cloud ecosystem (`~/Git/auth`, `~/Git/chrome`, `~/Git/css`, `~/Git/wlmonitor`, `~/Git/zeiterfassung`, `~/Git/Energie`, `~/Git/simplechat-2.1`, `~/Git/suche`).
+Central configuration, generation and deployment entry point for every app in the Jardyx / eriks.cloud ecosystem (`~/Git/auth`, `~/Git/chrome`, `~/Git/css_library`, `~/Git/wlmonitor`, `~/Git/zeiterfassung`, `~/Git/Energie`, `~/Git/simplechat-2.1`, `~/Git/suche`).
 
 One `config.yaml` is the single source of truth for all per-target secrets, database credentials, FTP credentials and URL bindings. `generate.py` expands that file into per-app `config.yaml` (or equivalent) files. `deploy.py` rsyncs (or FTP-uploads) the app to a target host.
 
@@ -68,7 +68,7 @@ Deploys every registered app to the given target, failing fast on the first erro
 
 ## Database grants
 
-`scripts/grant-db-users.sql` enumerates the least-privilege grants each app's DB user needs against `jardyx_auth`. Update it in the same change that introduces a new auth-DB table — missing grants show up as runtime MySQL 1142 errors in production and are painful to attribute.
+`scripts/grant-db-users.sql` enumerates the least-privilege grants each app's DB user needs against `auth`. Update it in the same change that introduces a new auth-DB table — missing grants show up as runtime MySQL 1142 errors in production and are painful to attribute.
 
 ## Publishing rules
 
