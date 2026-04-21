@@ -271,3 +271,13 @@ def test_write_app_svgs_skips_when_src_missing(tmp_path, capsys):
     write_app_svgs('testapp', '#d6a733', tmp_path / 'testapp', tmp_path / 'missing.svg')
     assert not (tmp_path / 'testapp' / 'web' / 'jardyx-logo.svg').exists()
     assert 'WARNING' in capsys.readouterr().err
+
+
+def test_write_app_svgs_skips_when_web_dir_missing(tmp_path, capsys):
+    icon_src = tmp_path / 'jardyx.svg'
+    icon_src.write_text(SAMPLE_SVG)
+    # No web/ directory created
+    (tmp_path / 'testapp').mkdir()
+    write_app_svgs('testapp', '#d6a733', tmp_path / 'testapp', icon_src)
+    assert not (tmp_path / 'testapp' / 'jardyx-logo.svg').exists()
+    assert 'WARNING' in capsys.readouterr().err

@@ -168,7 +168,11 @@ def write_app_svgs(app_name: str, color: str, app_dir: Path, icon_src: Path = No
 
     src = icon_src.read_text()
     web_dir = app_dir / 'web'
+    if not web_dir.is_dir():
+        print(f'  WARNING: {web_dir} does not exist — skipping SVG generation', file=sys.stderr)
+        return
 
+    # String replacement is intentional — we own jardyx.svg and its structure is stable.
     # Logo: replace the fill attribute directly
     logo_svg = src.replace('fill="#e2001a"', f'fill="{color}"')
     (web_dir / 'jardyx-logo.svg').write_text(logo_svg)
