@@ -156,6 +156,34 @@ See `config.example.yaml` for the full expected shape.
 """
 
 
+# ── SVG generation ───────────────────────────────────────────────────────────
+
+def write_app_svgs(app_name: str, color: str, app_dir: Path, icon_src: Path = None) -> None:
+    """Write jardyx-logo.svg and jardyx-favicon.svg into app_dir/web/."""
+    if icon_src is None:
+        icon_src = REPO_ROOT.parent / 'css_library' / 'icons' / 'jardyx.svg'
+    if not icon_src.exists():
+        print(f'  WARNING: {icon_src} does not exist — skipping SVG generation', file=sys.stderr)
+        return
+
+    src = icon_src.read_text()
+    web_dir = app_dir / 'web'
+
+    # Logo: replace the fill attribute directly
+    logo_svg = src.replace('fill="#e2001a"', f'fill="{color}"')
+    (web_dir / 'jardyx-logo.svg').write_text(logo_svg)
+    print(f'  wrote {app_name}/web/jardyx-logo.svg')
+
+    # Favicon: use embedded <style> block instead of fill attribute
+    favicon_svg = src.replace(' fill="#e2001a"', '')
+    favicon_svg = favicon_svg.replace(
+        '<g transform=',
+        f'<style>g {{ fill: {color}; }}</style>\n  <g transform='
+    )
+    (web_dir / 'jardyx-favicon.svg').write_text(favicon_svg)
+    print(f'  wrote {app_name}/web/jardyx-favicon.svg')
+
+
 # ── File writing ──────────────────────────────────────────────────────────────
 
 def write_app_files(config: dict, app_name: str, target: str) -> None:
@@ -188,6 +216,10 @@ def write_app_files(config: dict, app_name: str, target: str) -> None:
     with open(update_path, 'w') as f:
         f.write(generate_update_md(app_name, app_cfg.get('legacy_config')))
     print(f'  wrote {app_name}/update.md')
+
+    # SVG logo + favicon for apps that declare app.color
+    if resolved.get('app', {}).get('color'):
+        write_app_svgs(app_name, resolved['app']['color'], app_dir)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
