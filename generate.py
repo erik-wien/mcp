@@ -87,8 +87,8 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
         app_section['base_url'] = base_url.get(target, base_url.get('local'))
     elif base_url is not None:
         app_section['base_url'] = base_url
-    if app_section:
-        result['app'] = app_section
+    app_section['env'] = target
+    result['app'] = app_section
 
     # App-specific extras (hofer, wienenergie, custom sections …) ─────────────
     skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db'}
