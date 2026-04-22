@@ -1,126 +1,141 @@
 -- grant-db-users.sql
--- Idempotent: safe to re-run on localhost and akadbrain.
--- Run as root: mysql -uroot < deploy/scripts/grant-db-users.sql
+-- Single-DB (`jardyx`) model. Every app user has table-level grants inside
+-- jardyx, scoped to the table prefix it owns plus a read/write slice of the
+-- auth_* tables used by the erikr/auth library.
+--
+-- Run as root:  mariadb -uroot < scripts/grant-db-users.sql
+-- Idempotent: safe to re-run on local, akadbrain, and world4you (world4you
+-- DB is named `5279249db19`; run the world4you-variant of this file instead).
 
--- CREATE PROCEDURE below needs a current database even though all references
--- are fully qualified. Any DB works; `auth` always exists by this point.
-USE auth;
---
--- Each app gets its own user with minimal grants:
---   - App DB: full access (own data)
---   - auth: table-level access to only the tables the auth library uses
---
--- Per auth-rules §8, no app gets DELETE on auth.auth_accounts — deletion flows
--- through admin_delete_user(). REVOKEs below clean up over-broad grants that
--- earlier revisions of this file may have applied.
+-- CREATE PROCEDURE below needs a current database. `jardyx` is always
+-- present by this point (create-db.sql runs first).
+USE jardyx;
 
 -- ── Create users (idempotent) ─────────────────────────────────────────────────
--- All six app users are created here so the GRANT statements below cannot fail
--- with ERROR 1133 on a clean-slate install. Passwords match mcp/config.yaml —
--- when a password is rotated there, update it here too.
+-- Passwords match mcp/config.yaml — when a password is rotated there, update
+-- it here too.
 
 CREATE USER IF NOT EXISTS 'simplechat'@'localhost'    IDENTIFIED BY 'ZRHSwxyj8LIi7RbG';
 CREATE USER IF NOT EXISTS 'wlmonitor'@'localhost'     IDENTIFIED BY 'sopdi9-nyKnyb-zyqpyh';
 CREATE USER IF NOT EXISTS 'zeiterfassung'@'localhost' IDENTIFIED BY 'CfgnWHMYiQYPU17Cg8KN80pO';
 CREATE USER IF NOT EXISTS 'energie'@'localhost'       IDENTIFIED BY 'sopdi9-nyKnyb-zyqpyh';
--- suche + lastfm created further down, next to their section-specific stub tables.
+CREATE USER IF NOT EXISTS 'suche'@'localhost'         IDENTIFIED BY '3wvHihlGjhJGY5vsAeQS2z';
+CREATE USER IF NOT EXISTS 'lastfm'@'localhost'        IDENTIFIED BY 'DaT8dXD36UxTpNyxSMMTxg';
 
 -- ── Revoke over-broad legacy grants ───────────────────────────────────────────
--- Wrapped in a stored procedure so the REVOKE is a no-op on fresh DBs where
--- the specific grant was never applied (CONTINUE HANDLER swallows the 1141 /
--- 1147 "There is no such grant defined" error). Safe on re-run.
+-- Wrapped in a stored procedure so the REVOKE is a no-op on fresh DBs (CONTINUE
+-- HANDLER swallows 1141/1147 "no such grant defined"). Safe on re-run.
 DROP PROCEDURE IF EXISTS _auth_revoke_legacy;
 DELIMITER //
 CREATE PROCEDURE _auth_revoke_legacy()
 BEGIN
   DECLARE CONTINUE HANDLER FOR SQLEXCEPTION BEGIN END;
-  REVOKE ALL PRIVILEGES ON auth.* FROM 'wlmonitor'@'localhost';
-  REVOKE DELETE ON auth.auth_accounts FROM 'suche'@'localhost';
+  -- Legacy multi-DB grants (pre-jardyx):
+  REVOKE ALL PRIVILEGES ON auth.*          FROM 'simplechat'@'localhost';
+  REVOKE ALL PRIVILEGES ON auth.*          FROM 'wlmonitor'@'localhost';
+  REVOKE ALL PRIVILEGES ON auth.*          FROM 'zeiterfassung'@'localhost';
+  REVOKE ALL PRIVILEGES ON auth.*          FROM 'energie'@'localhost';
+  REVOKE ALL PRIVILEGES ON auth.*          FROM 'suche'@'localhost';
+  REVOKE ALL PRIVILEGES ON auth.*          FROM 'lastfm'@'localhost';
+  REVOKE ALL PRIVILEGES ON wlmonitor.*     FROM 'wlmonitor'@'localhost';
+  REVOKE ALL PRIVILEGES ON wlmonitor_dev.* FROM 'wlmonitor'@'localhost';
+  REVOKE ALL PRIVILEGES ON zeiterfassung.* FROM 'zeiterfassung'@'localhost';
+  REVOKE ALL PRIVILEGES ON energie.*       FROM 'energie'@'localhost';
+  REVOKE ALL PRIVILEGES ON lastfm.*        FROM 'lastfm'@'localhost';
+  -- Old auth_accounts DELETE violations:
+  REVOKE DELETE ON auth.auth_accounts        FROM 'suche'@'localhost';
   REVOKE DELETE ON jardyx_auth.auth_accounts FROM 'suche'@'localhost';
 END //
 DELIMITER ;
 CALL _auth_revoke_legacy();
 DROP PROCEDURE IF EXISTS _auth_revoke_legacy;
 
--- ── simplechat ────────────────────────────────────────────────────────────────
--- No app DB (file-backed). Only needs auth access.
--- Missing: password_resets (added for forgot-password flow)
+-- ── Shared auth_* grants (per auth-rules §8) ──────────────────────────────────
+-- Every app gets the same slice of auth tables. No app gets DELETE on
+-- auth_accounts — deletion flows through admin_delete_user().
+-- auth_log is append-only (no UPDATE/DELETE for any app).
 
-GRANT SELECT, INSERT, UPDATE ON auth.auth_accounts      TO 'simplechat'@'localhost';
-GRANT SELECT, INSERT, UPDATE ON auth.auth_blacklist      TO 'simplechat'@'localhost';
-GRANT SELECT, INSERT         ON auth.auth_log            TO 'simplechat'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.password_resets TO 'simplechat'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_remember_tokens TO 'simplechat'@'localhost';
+-- simplechat + energie + lastfm: no invite flow (no auth_invite_tokens grant)
+-- wlmonitor + zeiterfassung + suche: full auth suite incl. invite tokens
 
--- ── wlmonitor ─────────────────────────────────────────────────────────────────
--- App DB: wlmonitor (full). Auth: table-level (no DELETE on auth_accounts — per
--- auth-rules §8, deletion flows through admin_delete_user()).
+-- Stub tables must exist for table-level GRANT (MariaDB requirement).
+-- The schema apply in rebuild-jardyx.sh runs BEFORE this file, so by the
+-- time we grant, every auth_* / s_* / wl_sessions table already exists.
 
-GRANT ALL PRIVILEGES ON wlmonitor.*                               TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_accounts        TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_blacklist       TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT                 ON auth.auth_log             TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.password_resets      TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_invite_tokens   TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_remember_tokens TO 'wlmonitor'@'localhost';
+-- simplechat ──────────────────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'simplechat'@'localhost';
 
--- ── zeiterfassung ─────────────────────────────────────────────────────────────
--- App DB: zeiterfassung (full). Auth: auth (read + write for auth flows).
+-- wlmonitor ──────────────────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_sessions          TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_favorites         TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_log               TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_preferences       TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_userprefs         TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.db_migrations        TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.ogd_haltestellen     TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.ogd_linien           TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.ogd_stations         TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.ogd_steige           TO 'wlmonitor'@'localhost';
 
-GRANT ALL PRIVILEGES ON zeiterfassung.*                        TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_accounts        TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_blacklist        TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT                 ON auth.auth_log              TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.password_resets       TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_remember_tokens  TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_invite_tokens    TO 'zeiterfassung'@'localhost';
+-- zeiterfassung ──────────────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_chkReasons            TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_cron                  TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_user                  TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_userprefs             TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_zeitErfassung         TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_zeitErfassung_deleted TO 'zeiterfassung'@'localhost';
 
--- ── energie ───────────────────────────────────────────────────────────────────
--- App DB: energie (full). Auth: auth (currently missing — adding now).
+-- energie ────────────────────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'energie'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.readings             TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.tariff_config        TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.daily_summary        TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.en_preferences       TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.en_userprefs         TO 'energie'@'localhost';
 
-GRANT ALL PRIVILEGES ON energie.*                              TO 'energie'@'localhost';
-GRANT SELECT, INSERT, UPDATE ON auth.auth_accounts      TO 'energie'@'localhost';
-GRANT SELECT, INSERT, UPDATE ON auth.auth_blacklist      TO 'energie'@'localhost';
-GRANT SELECT, INSERT         ON auth.auth_log            TO 'energie'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.password_resets TO 'energie'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_remember_tokens TO 'energie'@'localhost';
+-- suche ──────────────────────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'suche'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_buttons            TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_feeds              TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_db_migrations      TO 'suche'@'localhost';
 
--- ── suche ─────────────────────────────────────────────────────────────────────
--- No separate app DB. All three new tables (s_buttons, s_feeds, s_db_migrations)
--- live in auth alongside the auth tables. DDL is done by migrate.php;
--- the app user only needs DML on the s_* tables + auth read/write.
--- Stub tables must exist before per-table GRANTs (MariaDB requirement);
--- migrate.php will DROP and re-CREATE them with the real column definitions.
-
-CREATE TABLE IF NOT EXISTS auth.s_buttons       (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
-CREATE TABLE IF NOT EXISTS auth.s_feeds         (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
-CREATE TABLE IF NOT EXISTS auth.s_db_migrations (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;
-
-CREATE USER IF NOT EXISTS 'suche'@'localhost' IDENTIFIED BY '3wvHihlGjhJGY5vsAeQS2z';
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.s_buttons        TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.s_feeds          TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.s_db_migrations  TO 'suche'@'localhost';
-
--- auth_accounts: no DELETE — deletion flows through admin_delete_user() (auth-rules §8).
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_accounts        TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_blacklist       TO 'suche'@'localhost';
-GRANT SELECT, INSERT                 ON auth.auth_log             TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.password_resets      TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_invite_tokens   TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_remember_tokens TO 'suche'@'localhost';
-
--- ── lastfm ────────────────────────────────────────────────────────────────────
--- App DB: lastfm (full). Auth: auth (standard auth flows, no invite/registration).
-
-CREATE USER IF NOT EXISTS 'lastfm'@'localhost' IDENTIFIED BY 'DaT8dXD36UxTpNyxSMMTxg';
-
-GRANT ALL PRIVILEGES ON lastfm.* TO 'lastfm'@'localhost';
-
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_accounts       TO 'lastfm'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON auth.auth_blacklist       TO 'lastfm'@'localhost';
-GRANT SELECT, INSERT                 ON auth.auth_log             TO 'lastfm'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.password_resets      TO 'lastfm'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON auth.auth_remember_tokens TO 'lastfm'@'localhost';
+-- lastfm ─────────────────────────────────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts         TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist        TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT                 ON jardyx.auth_log              TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets       TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens  TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_albums            TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_artists           TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_played_tracks     TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_tracks            TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_user_credentials  TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_weekly_charts     TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_year_imports      TO 'lastfm'@'localhost';
 
 FLUSH PRIVILEGES;
