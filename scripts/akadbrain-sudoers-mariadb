@@ -1,0 +1,18 @@
+# /etc/sudoers.d/mariadb-erik  (on akadbrain)
+#
+# Grants the `erik` OS user passwordless sudo for the two MariaDB CLIs so that
+# scripts/rebuild-jardyx.sh akadbrain can drive the DB from a workstation over
+# SSH without an interactive sudo prompt.
+#
+# Install on akadbrain (run as root, locally on the server):
+#   sudo visudo -cf - <<'EOF' && sudo install -m 0440 -o root -g wheel \
+#       /dev/stdin /etc/sudoers.d/mariadb-erik <<'EOF'
+#   erik ALL=(root) NOPASSWD: /opt/homebrew/bin/mariadb, /opt/homebrew/bin/mariadb-dump
+#   EOF
+#
+# Or the simpler copy-paste:
+#   echo 'erik ALL=(root) NOPASSWD: /opt/homebrew/bin/mariadb, /opt/homebrew/bin/mariadb-dump' \
+#     | sudo tee /etc/sudoers.d/mariadb-erik
+#   sudo chmod 0440 /etc/sudoers.d/mariadb-erik
+#   sudo visudo -c    # verify syntax
+erik ALL=(root) NOPASSWD: /opt/homebrew/bin/mariadb, /opt/homebrew/bin/mariadb-dump
