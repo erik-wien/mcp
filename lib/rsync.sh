@@ -23,6 +23,7 @@ RSYNC_OPTS=(
     --exclude=".DS_Store"
     --exclude=".claude/"
     --exclude=".claude.json"
+    --exclude=".superpowers/"
     --exclude="CLAUDE.md"
     --exclude="*.md"
     --exclude="update.md"
@@ -57,11 +58,12 @@ case "$MODE" in
         ;;
 
     ssh)
-        # Per-app override: delegate the whole deploy (composer dance, rsync,
-        # remote migrations) to <app>/scripts/ssh_deploy.php if present. Mirrors
-        # lib/ftp.sh, which delegates to <app>/scripts/ftp_deploy.php.
+        # Per-app override: delegate to <app>/scripts/ssh_deploy.php when the
+        # caller passes __delegated__ as DEST. deploy.py only does this for
+        # targets that have FTP configured (world4you), so ssh_deploy.php —
+        # which requires ftp_base_dir — is never invoked for akadbrain.
         SSH_DEPLOY_PHP="$SRC/scripts/ssh_deploy.php"
-        if [[ -f "$SSH_DEPLOY_PHP" ]]; then
+        if [[ "$DEST" == "__delegated__" && -f "$SSH_DEPLOY_PHP" ]]; then
             info "Using $(basename "$SRC")/scripts/ssh_deploy.php ..."
             php "$SSH_DEPLOY_PHP"
             ok "SSH deploy complete via ssh_deploy.php"

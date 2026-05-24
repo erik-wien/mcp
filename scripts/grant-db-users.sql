@@ -55,8 +55,12 @@ DROP PROCEDURE IF EXISTS _auth_revoke_legacy;
 -- auth_accounts — deletion flows through admin_delete_user().
 -- auth_log is append-only (no UPDATE/DELETE for any app).
 
--- simplechat + energie + lastfm: no invite flow (no auth_invite_tokens grant)
--- wlmonitor + zeiterfassung + suche: full auth suite incl. invite tokens
+-- Every app gets auth_invite_tokens — admin-triggered password resets
+-- (admin_reset_password / admin_create_user in erikr/auth) issue invite
+-- tokens and link to setpassword.php, regardless of whether the app uses
+-- the user-facing self-invite flow.
+-- Every app gets DELETE on auth_blacklist — auth_clear_auto_blacklist_ip()
+-- is called from every app's executeReset.php to unblock the reset IP.
 
 -- Stub tables must exist for table-level GRANT (MariaDB requirement).
 -- The schema apply in rebuild-jardyx.sh runs BEFORE this file, so by the
@@ -64,14 +68,15 @@ DROP PROCEDURE IF EXISTS _auth_revoke_legacy;
 
 -- simplechat ──────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'simplechat'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist       TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'simplechat'@'localhost';
 
 -- wlmonitor ──────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'wlmonitor'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist       TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'wlmonitor'@'localhost';
@@ -89,7 +94,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.ogd_steige           TO 'wlmonito
 
 -- zeiterfassung ──────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'zeiterfassung'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist       TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'zeiterfassung'@'localhost';
@@ -103,9 +108,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_zeitErfassung_deleted TO 'ze
 
 -- energie ────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'energie'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist       TO 'energie'@'localhost';
 GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.readings             TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.tariff_config        TO 'energie'@'localhost';
@@ -115,7 +121,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.en_userprefs         TO 'energie'
 
 -- suche ──────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'suche'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist       TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist       TO 'suche'@'localhost';
 GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'suche'@'localhost';
@@ -126,9 +132,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_db_migrations      TO 'suche'@'
 
 -- lastfm ─────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts         TO 'lastfm'@'localhost';
-GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_blacklist        TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist        TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT                 ON jardyx.auth_log              TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets       TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens    TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens  TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_albums            TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_artists           TO 'lastfm'@'localhost';

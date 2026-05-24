@@ -128,8 +128,10 @@ def get_deploy_method(config: dict, app: str, target: str) -> str:
     target_cfg = config['shared']['targets'].get(target, {})
     has_ssh = 'ssh_host' in target_cfg
     has_ftp = 'ftp_host' in target_cfg
+    # ssh_deploy.php is world4you-specific (needs ftp_base_dir); only use it
+    # when the target also has FTP configured (i.e. world4you).
     ssh_deploy_php = APPS_ROOT / app / 'scripts' / 'ssh_deploy.php'
-    if has_ssh and ssh_deploy_php.exists():
+    if has_ssh and has_ftp and ssh_deploy_php.exists():
         return 'rsync_ssh'
     if has_ftp:
         return 'ftp'
@@ -150,8 +152,11 @@ def deploy_rsync_ssh(config: dict, app: str, target: str) -> None:
     # ignores dest/ssh_* args — so we don't need them here either. The per-app
     # script reads everything (including the remote path) from its own
     # config.yaml.
+    # ssh_deploy.php is world4you-specific (needs ftp_base_dir); only delegate
+    # to it when the target also has FTP configured (i.e. world4you).
+    has_ftp = 'ftp_host' in config['shared']['targets'].get(target, {})
     ssh_deploy_php = APPS_ROOT / app / 'scripts' / 'ssh_deploy.php'
-    if ssh_deploy_php.exists():
+    if has_ftp and ssh_deploy_php.exists():
         subprocess.run(
             ['bash', str(LIB / 'rsync.sh'), 'ssh', src, '__delegated__'],
             check=True,
@@ -164,6 +169,12 @@ def deploy_rsync_ssh(config: dict, app: str, target: str) -> None:
          t['ssh_user'], t['ssh_host'], t.get('ssh_key', '')],
         check=True,
     )
+    # rsync.sh excludes config.yaml; copy it separately so the app can boot.
+    scp = ['scp']
+    if t.get('ssh_key'):
+        scp += ['-i', str(Path(t['ssh_key']).expanduser())]
+    remote = f"{t['ssh_user']}@{t['ssh_host']}"
+    subprocess.run(scp + [f'{src}/config.yaml', f'{remote}:{dest}/config.yaml'], check=True)
 
 
 def deploy_ftp(config: dict, app: str, target: str) -> None:
