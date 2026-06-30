@@ -29,7 +29,7 @@ mcp/
 |---|---|---|---|---|
 | `local` | developer workstation | macOS Homebrew | MariaDB (localhost, socket) | local Apache 2.4 |
 | `akadbrain` | akadbrain (production-1) | SSH key | MariaDB on host | nginx + PHP-FPM |
-| `world4you` | world4you shared hosting | FTPS (`ftp_ssl_connect`) | MariaDB (5279249db19) | managed Apache |
+| `world4you` | world4you shared hosting | SSH key (`ssh_deploy.php`) | **MySQL 5.5** (`5279249db19`) | managed Apache |
 
 ## Usage
 
@@ -52,7 +52,21 @@ python3 deploy.py --mail-ini akadbrain              # write /opt/homebrew/etc/ja
 Mechanisms:
 
 - `local` and `akadbrain` use `rsync --copy-links --delete`, which resolves Composer path symlinks (`vendor/erikr/auth`, `vendor/erikr/chrome`) into real files at the destination.
-- `world4you` uses FTPS via a per-app `scripts/ftp_deploy.php` shipped with the app.
+- `world4you` uses rsync + remote migrations over SSH via a per-app `scripts/ssh_deploy.php` shipped with the app (it derives the remote path from `deploy.<target>.ftp_base_dir`).
+
+> **World4you runs an old MySQL — migrations must use portable SQL.** The host's DB
+> is MySQL 5.5-era (the SSH `mysql` client reports `Distrib 5.5.62`), so
+> **MariaDB-only extensions break there** — notably column-level `ALTER TABLE … ADD
+> COLUMN IF NOT EXISTS` / `DROP COLUMN IF EXISTS` (`CREATE TABLE IF NOT EXISTS` is
+> standard and fine). `ssh_deploy.php` runs each `migrations/*.sql` with **STRICT
+> mysqli** and records applied files in a `db_migrations` table, so:
+>
+> - **Run-once is guaranteed by `db_migrations`** — migrations need not be
+>   self-idempotent. Write plain `ALTER TABLE … ADD COLUMN …`, not `… IF NOT EXISTS`.
+> - **Any SQL error aborts the whole deploy** — the runner exits 255, `rsync.sh`
+>   (`set -e`) propagates it, `deploy.py` raises. SQL that is valid on local MariaDB
+>   but invalid on world4you MySQL fails every deploy until fixed.
+>   (Hit 2026-06-30 by `002_en_swipe_nav.sql`.)
 
 ### Batch deploy
 
