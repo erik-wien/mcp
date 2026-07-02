@@ -16,7 +16,11 @@ RSYNC_OPTS=(
     --archive
     --verbose
     --delete
-    --delete-excluded
+    # NO --delete-excluded: excluded dirs (data/, config/, var/, db/) hold
+    # server-side state (file-backed chat store, legacy configs, caches) that
+    # must survive deploys. --delete-excluded wiped them on 2026-07-01/02
+    # (werda fatal: config/ gone; chat 500: data/ gone). ssh_deploy.php has
+    # always done it right — plain --delete only.
     --copy-links
     --exclude=".git/"
     --exclude=".gitignore"
