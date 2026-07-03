@@ -16,13 +16,24 @@ RSYNC_OPTS=(
     --archive
     --verbose
     --delete
-    --delete-excluded
+    # NO --delete-excluded: excluded dirs (data/, config/, var/, db/) hold
+    # server-side state (file-backed chat store, legacy configs, caches) that
+    # must survive deploys. --delete-excluded wiped them on 2026-07-01/02
+    # (werda fatal: config/ gone; chat 500: data/ gone). ssh_deploy.php has
+    # always done it right — plain --delete only.
     --copy-links
+    # Enforce world-readable perms on everything deployed (dirs 755, files 644):
+    # -a copies SOURCE perms, and 0400/0600 source files (macOS quirks, uploads)
+    # made the web server (nobody/_www) 403 on prod — icons 2026-07-01, shared
+    # woff2 fonts 2026-07-02. Secrets never ride this sync (config.yaml, data/,
+    # config/ are excluded); ssh_deploy.php uses the same --chmod.
+    --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r
     --exclude=".git/"
     --exclude=".gitignore"
     --exclude=".DS_Store"
     --exclude=".claude/"
     --exclude=".claude.json"
+    --exclude=".superpowers/"
     --exclude="CLAUDE.md"
     --exclude="*.md"
     --exclude="update.md"
@@ -57,11 +68,12 @@ case "$MODE" in
         ;;
 
     ssh)
-        # Per-app override: delegate the whole deploy (composer dance, rsync,
-        # remote migrations) to <app>/scripts/ssh_deploy.php if present. Mirrors
-        # lib/ftp.sh, which delegates to <app>/scripts/ftp_deploy.php.
+        # Per-app override: delegate to <app>/scripts/ssh_deploy.php when the
+        # caller passes __delegated__ as DEST. deploy.py only does this for
+        # targets that have FTP configured (world4you), so ssh_deploy.php —
+        # which requires ftp_base_dir — is never invoked for akadbrain.
         SSH_DEPLOY_PHP="$SRC/scripts/ssh_deploy.php"
-        if [[ -f "$SSH_DEPLOY_PHP" ]]; then
+        if [[ "$DEST" == "__delegated__" && -f "$SSH_DEPLOY_PHP" ]]; then
             info "Using $(basename "$SRC")/scripts/ssh_deploy.php ..."
             php "$SSH_DEPLOY_PHP"
             ok "SSH deploy complete via ssh_deploy.php"

@@ -11,11 +11,11 @@
 #   world4you   — deploy to world4you via FTP (PROD · jardyx.com)
 #
 # Apps (friendly names → mcp app names):
-#   chat        → simplechat-2.1
+#   chat        → simplechat
 #   wlmonitor   → wlmonitor
 #   zeit        → zeiterfassung
 #   energie     → energie
-#   home        → home
+#   suche/home  → suche
 #
 # Examples:
 #   bash deploy/scripts/deploy-all.sh akadbrain
@@ -51,11 +51,11 @@ esac
 # Friendly name → mcp app name
 mcp_name() {
     case "$1" in
-        chat)       echo "simplechat-2.1" ;;
+        chat)       echo "simplechat" ;;
         wlmonitor)  echo "wlmonitor" ;;
         zeit)       echo "zeiterfassung" ;;
         energie)    echo "energie" ;;
-        home)       echo "home" ;;
+        home|suche) echo "suche" ;;
         *)          echo "$1" ;;  # pass through unknown names for mcp to validate
     esac
 }
@@ -63,7 +63,7 @@ mcp_name() {
 if [[ "$#" -gt 0 ]]; then
     APPS=("$@")
 else
-    APPS=(chat wlmonitor zeit energie home)
+    APPS=(chat wlmonitor zeit energie suche)
 fi
 
 echo

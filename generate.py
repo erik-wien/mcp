@@ -19,8 +19,8 @@ APPS_ROOT = REPO_ROOT.parent
 
 # Values for these keys are replaced with `your_<key>` in config.example.yaml
 CREDENTIAL_KEYS = frozenset({
-    'password', 'pass', 'bot_token', 'ftp_password',
-    'ftp_user', 'api_key', 'secret', 'token',
+    'password', 'pass', 'bot_token',
+    'api_key', 'secret', 'token',
 })
 
 
@@ -54,8 +54,8 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
         result['db'] = db
 
     # Deploy ──────────────────────────────────────────────────────────────────
-    # Merge shared.targets[target] (ftp_host, ssh_host, web_root, …) with
-    # per-app deploy[target] (ftp_base_dir, dest, sync_dirs, …).
+    # Merge shared.targets[target] (ssh_host, ssh_user, web_root, …) with
+    # per-app deploy[target] (ftp_base_dir = world4you remote path, dest, …).
     shared_target = (shared.get('targets') or {}).get(target, {}) or {}
     app_deploy = (app.get('deploy') or {}).get(target, {}) or {}
     deploy_block = {**shared_target, **app_deploy}
