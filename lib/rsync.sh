@@ -58,6 +58,10 @@ RSYNC_OPTS=(
     --exclude="config/"
     --exclude="data/"
     --exclude="var/"
+    # Runtime-Upload-/Archiv-Verzeichnisse (z. B. zeiterfassung SAP-Journale):
+    # enthalten Nutzer-/Personaldaten, gehören nie auf ein Prod-Ziel.
+    --exclude="upload/"
+    --exclude="archiv/"
     --exclude="config.yaml"
     --exclude="config.example.yaml"
     --exclude="__pycache__/"
