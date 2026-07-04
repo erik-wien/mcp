@@ -35,6 +35,12 @@ RSYNC_OPTS=(
     --exclude=".claude.json"
     --exclude=".superpowers/"
     --exclude="CLAUDE.md"
+    # Protect the erikr/auth mail templates (Markdown) from the blanket *.md
+    # exclude below — first-match-wins, so this include MUST precede it. Without
+    # it, blacklist/invite/reset/lockout mails throw TemplateException at runtime
+    # (empty templates/email/ on prod, 2026-07-01..04). Verified via openrsync
+    # dry-run: protects the 5 templates, still strips READMEs/docs.
+    --include="**/templates/email/*.md"
     --exclude="*.md"
     --exclude="update.md"
     --exclude="phpunit.xml"
