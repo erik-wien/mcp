@@ -7,13 +7,16 @@
 #                Grants für die 5 eriks.cloud-Apps. Idempotent (mehrfach
 #                ausführbar). Fasst KEINE Benutzerdaten an.
 #
-# Voraussetzung: root-DB-Zugriff via `sudo mariadb` (Socket). Falls auf diesem
-# Host stattdessen `mariadb -uroot` (ohne sudo) gilt, DBROOT unten anpassen.
+# Voraussetzung: DB-Superuser. Auf akadbrain ist `erik@localhost` via
+# unix_socket ALL PRIVILEGES (kein sudo, kein Passwort) — der Default-User des
+# mariadb-Clients. Der Client liegt unter /opt/homebrew/bin und ist bei
+# nicht-interaktivem SSH oft nicht im PATH, daher wird er hier aufgelöst.
 #
 set -euo pipefail
 
 DB=jardyx
-DBROOT=(sudo mariadb)      # ggf. auf ( mariadb -uroot ) ändern
+MARIADB="$(command -v mariadb || echo /opt/homebrew/bin/mariadb)"
+DBROOT=("$MARIADB")        # erik@localhost = Superuser via Socket; kein -u/-p, kein sudo
 
 echo "== [1/3] Migration: ${DB}.auth_sso_tickets anlegen =="
 "${DBROOT[@]}" "$DB" <<'SQL'
