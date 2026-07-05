@@ -133,11 +133,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_db_migrations      TO 'suche'@'
 -- auth_sso_tickets — SSO one-time ticket grants ──────────────────────────────
 -- Only suche (the central login host) issues tickets → INSERT.
 -- All other apps only redeem (SELECT) and consume (DELETE).
-GRANT SELECT, INSERT, DELETE ON auth.auth_sso_tickets TO 'suche'@'localhost';
-GRANT SELECT, DELETE         ON auth.auth_sso_tickets TO 'simplechat'@'localhost';
-GRANT SELECT, DELETE         ON auth.auth_sso_tickets TO 'wlmonitor'@'localhost';
-GRANT SELECT, DELETE         ON auth.auth_sso_tickets TO 'energie'@'localhost';
-GRANT SELECT, DELETE         ON auth.auth_sso_tickets TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, DELETE ON jardyx.auth_sso_tickets TO 'suche'@'localhost';
+GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'simplechat'@'localhost';
+GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'wlmonitor'@'localhost';
+GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'energie'@'localhost';
+GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'zeiterfassung'@'localhost';
 
 -- lastfm ─────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts         TO 'lastfm'@'localhost';
