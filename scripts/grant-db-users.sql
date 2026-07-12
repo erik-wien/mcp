@@ -139,6 +139,12 @@ GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'wlmonitor'@'localhos
 GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'energie'@'localhost';
 GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'zeiterfassung'@'localhost';
 
+-- biblio — auth_api_tokens only (Token-Auth T1, 2026-07-12) ──────────────────
+-- NOTE: grant-db-users.sql has no full biblio section yet (pre-existing drift —
+-- the live biblio DB user already carries the full grant set; see backlog
+-- task-high.1). Only the new table's grant is added here, other apps later.
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'biblio'@'localhost';
+
 -- lastfm ─────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts         TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_blacklist        TO 'lastfm'@'localhost';
