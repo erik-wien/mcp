@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import copy
 import pytest
-from generate import resolve_app_config, resolve_db, sanitize, generate_update_md, write_app_svgs
+from generate import resolve_app_config, resolve_db, sanitize, generate_update_md
 
 # ── Fixture config ─────────────────────────────────────────────────────────────
 
@@ -235,49 +235,5 @@ def test_update_md_no_legacy():
     assert 'config.yaml' in md
 
 
-# ── write_app_svgs ─────────────────────────────────────────────────────────────
-
-SAMPLE_SVG = (
-    '<svg viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg" aria-label="jardyx">\n'
-    '  <g transform="translate(0,700) scale(0.1,-0.1)" fill="#e2001a" stroke="none">\n'
-    '    <path d="M0 0 L100 100"/>\n'
-    '  </g>\n'
-    '</svg>\n'
-)
-
-
-def test_write_app_svgs_logo_replaces_fill(tmp_path):
-    icon_src = tmp_path / 'jardyx.svg'
-    icon_src.write_text(SAMPLE_SVG)
-    (tmp_path / 'testapp' / 'web').mkdir(parents=True)
-    write_app_svgs('testapp', '#d6a733', tmp_path / 'testapp', icon_src)
-    logo = (tmp_path / 'testapp' / 'web' / 'jardyx-logo.svg').read_text()
-    assert 'fill="#d6a733"' in logo
-    assert 'fill="#e2001a"' not in logo
-
-
-def test_write_app_svgs_favicon_has_style_block(tmp_path):
-    icon_src = tmp_path / 'jardyx.svg'
-    icon_src.write_text(SAMPLE_SVG)
-    (tmp_path / 'testapp' / 'web').mkdir(parents=True)
-    write_app_svgs('testapp', '#d6a733', tmp_path / 'testapp', icon_src)
-    favicon = (tmp_path / 'testapp' / 'web' / 'jardyx-favicon.svg').read_text()
-    assert '<style>g { fill: #d6a733; }</style>' in favicon
-    assert 'fill="#e2001a"' not in favicon
-
-
-def test_write_app_svgs_skips_when_src_missing(tmp_path, capsys):
-    (tmp_path / 'testapp' / 'web').mkdir(parents=True)
-    write_app_svgs('testapp', '#d6a733', tmp_path / 'testapp', tmp_path / 'missing.svg')
-    assert not (tmp_path / 'testapp' / 'web' / 'jardyx-logo.svg').exists()
-    assert 'WARNING' in capsys.readouterr().err
-
-
-def test_write_app_svgs_skips_when_web_dir_missing(tmp_path, capsys):
-    icon_src = tmp_path / 'jardyx.svg'
-    icon_src.write_text(SAMPLE_SVG)
-    # No web/ directory created
-    (tmp_path / 'testapp').mkdir()
-    write_app_svgs('testapp', '#d6a733', tmp_path / 'testapp', icon_src)
-    assert not (tmp_path / 'testapp' / 'jardyx-logo.svg').exists()
-    assert 'WARNING' in capsys.readouterr().err
+# (write_app_svgs removed — per-app logo/favicon generation retired in favour of
+#  central css_library/logos/ assets; see the TASK-19 harmonisation design doc.)
