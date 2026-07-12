@@ -40,6 +40,18 @@ RSYNC_OPTS=(
     # it, blacklist/invite/reset/lockout mails throw TemplateException at runtime
     # (empty templates/email/ on prod, 2026-07-01..04). Verified via openrsync
     # dry-run: protects the 5 templates, still strips READMEs/docs.
+    # Doku-Viewer-Inhalte mitdeployen (biblio/antrago anleitung.php): NUR das
+    # Handbuch + die auto-gescannten Specs, nicht der Rest von docs/ (Pläne,
+    # Entwürfe). Muss VOR dem *.md- UND dem docs/-Exclude stehen (first-match-
+    # wins). /docs/-Anker = nur Top-Level-docs (kein backlog/docs o.ä.). Ersetzt
+    # den früheren manuellen Nachsync-Workaround; via openrsync-Dry-Run verifiziert.
+    --include="/docs/"
+    --include="/docs/handbuch/"
+    --include="/docs/handbuch/*.md"
+    --include="/docs/superpowers/"
+    --include="/docs/superpowers/specs/"
+    --include="/docs/superpowers/specs/*.md"
+    --exclude="/docs/**"
     --include="**/templates/email/*.md"
     --exclude="*.md"
     --exclude="update.md"
@@ -52,7 +64,8 @@ RSYNC_OPTS=(
     --exclude="scripts/"
     --exclude="tests/"
     --exclude="deprecated/"
-    --exclude="docs/"
+    # (docs/ wird jetzt selektiv einbezogen — siehe Include-Block oben; der
+    #  frühere pauschale docs/-Exclude entfiel dafür.)
     --exclude="bin/"
     --exclude="db/"
     --exclude="config/"
