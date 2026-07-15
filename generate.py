@@ -73,6 +73,15 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
         slack.update(app.get('slack', {}))
         result['slack'] = slack
 
+    # Replication (biblio Hub-Sync): target-scoped like db/auth_db — a node's
+    # replication.* only makes sense on the Hub that calls OUT to other nodes
+    # (akadbrain), never on the nodes being called. Config lives here (not
+    # scp'd by hand) so it survives every regeneration instead of being wiped
+    # on the next deploy (TASK-22 gap, 2026-07-15).
+    replication = resolve_db(app.get('replication'), target)
+    if replication:
+        result['replication'] = replication
+
     # App section: name, support_email, base_url for target ──────────────────
     app_block = app.get('app', {}) or {}
     app_section = {}
@@ -91,7 +100,7 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     result['app'] = app_section
 
     # App-specific extras (hofer, wienenergie, custom sections …) ─────────────
-    skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db'}
+    skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db', 'replication'}
     for key, value in app.items():
         if key not in skip:
             result[key] = value
@@ -110,7 +119,7 @@ def sanitize(value, key: str = '') -> object:
         return {k: sanitize(v, k) for k, v in value.items()}
     if isinstance(value, list):
         return [sanitize(v) for v in value]
-    if isinstance(value, str) and key in CREDENTIAL_KEYS:
+    if isinstance(value, str) and any(credword in key for credword in CREDENTIAL_KEYS):
         return f'your_{key}'
     return value
 
