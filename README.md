@@ -31,6 +31,9 @@ mcp/
 | `akadbrain` | akadbrain (production-1) | SSH key | MariaDB on host | nginx + PHP-FPM |
 | `world4you` | world4you shared hosting | SSH key (`ssh_deploy.php`) | **MySQL 5.5** (`5279249db19`) | managed Apache |
 
+Host operations (sudo scope, manual migrations, PHP-FPM reload/tuning, biblio
+Hub↔Hamish Tailscale reachability): [`docs/akadbrain-host-runbook.md`](docs/akadbrain-host-runbook.md).
+
 ## Usage
 
 ### Generate config for one app/target
