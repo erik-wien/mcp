@@ -73,14 +73,9 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
         slack.update(app.get('slack', {}))
         result['slack'] = slack
 
-    # Replication (biblio Hub-Sync): target-scoped like db/auth_db — a node's
-    # replication.* only makes sense on the Hub that calls OUT to other nodes
-    # (akadbrain), never on the nodes being called. Config lives here (not
-    # scp'd by hand) so it survives every regeneration instead of being wiped
-    # on the next deploy (TASK-22 gap, 2026-07-15).
-    replication = resolve_db(app.get('replication'), target)
-    if replication:
-        result['replication'] = replication
+    # (Replication config removed 2026-07-16, TASK-22: biblio's replication
+    # targets now live in the DB table bi_repl_ziel, managed via the admin tab —
+    # no longer generated from config.yaml.)
 
     # App section: name, support_email, base_url for target ──────────────────
     app_block = app.get('app', {}) or {}
@@ -100,7 +95,7 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     result['app'] = app_section
 
     # App-specific extras (hofer, wienenergie, custom sections …) ─────────────
-    skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db', 'replication'}
+    skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db'}
     for key, value in app.items():
         if key not in skip:
             result[key] = value
