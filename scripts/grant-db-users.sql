@@ -147,6 +147,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'biblio'@'loca
 -- Replikations-Ziel-Verwaltung (TASK-22, bi_repl_ziel): App macht nur
 -- SELECT/INSERT/UPDATE (die UI löscht keine Ziele — daher kein DELETE).
 GRANT SELECT, INSERT, UPDATE ON jardyx.bi_repl_ziel TO 'biblio'@'localhost';
+-- Genres (Plan 2, bi_genre/bi_buch_genre): bi_genre = kontrolliertes Vokabular,
+-- App liest nur (Seed/Pflege als root); bi_buch_genre = Zuordnung, volle CRUD.
+GRANT SELECT                         ON jardyx.bi_genre      TO 'biblio'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_buch_genre TO 'biblio'@'localhost';
 
 -- lastfm ─────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts         TO 'lastfm'@'localhost';
