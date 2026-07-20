@@ -33,6 +33,11 @@ RSYNC_OPTS=(
     --exclude=".DS_Store"
     --exclude=".claude/"
     --exclude=".claude.json"
+    # Git-Worktrees unter dem Repo (z. B. ~/Git/<app>/.worktrees/<name> aus
+    # parallelen Sessions) NIE mitdeployen: ihr web/css/shared-Symlink zeigt
+    # relativ ins Leere → rsync --copy-links bricht am fehlenden Ziel (exit 23,
+    # biblio 2026-07-20). .claude/worktrees/ deckt schon der .claude/-Exclude ab.
+    --exclude=".worktrees/"
     --exclude=".superpowers/"
     --exclude="backlog/"
     --exclude="CLAUDE.md"
