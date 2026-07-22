@@ -9,6 +9,7 @@ Usage:
 """
 
 import argparse
+import copy
 import sys
 from pathlib import Path
 
@@ -99,6 +100,19 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     for key, value in app.items():
         if key not in skip:
             result[key] = value
+
+    # Per-target values inside the resolver block: a resolver value that is a
+    # dict keyed by target names collapses to this target's value (like base_url
+    # above) — e.g. omlx_url set only for `local`, empty on prod. Everything else
+    # stays verbatim. Deep-copy so the shared config dict is never mutated across
+    # the per-target loop.
+    if isinstance(result.get('resolver'), dict):
+        known = set(app.get('targets') or [])
+        resolver = copy.deepcopy(result['resolver'])
+        for k, v in resolver.items():
+            if isinstance(v, dict) and (set(v.keys()) & known):
+                resolver[k] = v.get(target, v.get('local'))
+        result['resolver'] = resolver
 
     return result
 
