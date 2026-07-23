@@ -10,3 +10,4 @@ docs/superpowers/
 update.md
 .env
 .env.*
+venv/
