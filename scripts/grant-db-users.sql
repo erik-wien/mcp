@@ -150,8 +150,10 @@ GRANT SELECT, INSERT, UPDATE ON jardyx.bi_repl_ziel TO 'biblio'@'localhost';
 -- Genres (Plan 2, bi_genre/bi_buch_genre): bi_genre = kontrolliertes Vokabular,
 -- seit der Genre-Verwaltung (2026-07-23) von der App schreibbar (anlegen/umbenennen/
 -- löschen/sortieren); bi_buch_genre = Zuordnung, volle CRUD.
-GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_genre      TO 'biblio'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_buch_genre TO 'biblio'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_genre        TO 'biblio'@'localhost';
+-- bi_genre_gruppe: pflegbare Hauptgruppen (2026-07-23).
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_genre_gruppe TO 'biblio'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_buch_genre   TO 'biblio'@'localhost';
 
 -- lastfm ─────────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts         TO 'lastfm'@'localhost';
