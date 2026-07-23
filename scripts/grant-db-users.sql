@@ -148,8 +148,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'biblio'@'loca
 -- SELECT/INSERT/UPDATE (die UI löscht keine Ziele — daher kein DELETE).
 GRANT SELECT, INSERT, UPDATE ON jardyx.bi_repl_ziel TO 'biblio'@'localhost';
 -- Genres (Plan 2, bi_genre/bi_buch_genre): bi_genre = kontrolliertes Vokabular,
--- App liest nur (Seed/Pflege als root); bi_buch_genre = Zuordnung, volle CRUD.
-GRANT SELECT                         ON jardyx.bi_genre      TO 'biblio'@'localhost';
+-- seit der Genre-Verwaltung (2026-07-23) von der App schreibbar (anlegen/umbenennen/
+-- löschen/sortieren); bi_buch_genre = Zuordnung, volle CRUD.
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_genre      TO 'biblio'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_buch_genre TO 'biblio'@'localhost';
 
 -- lastfm ─────────────────────────────────────────────────────────────────────
