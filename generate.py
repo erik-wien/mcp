@@ -92,6 +92,14 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
         app_section['base_url'] = base_url.get(target, base_url.get('local'))
     elif base_url is not None:
         app_section['base_url'] = base_url
+    # slack_webhook_url: flacher String (alle Instanzen) ODER per-Target-Dict
+    # (z. B. nur {akadbrain: '…'} — der biblio-Replikations-Cron läuft nur dort).
+    swh = app_block.get('slack_webhook_url')
+    if isinstance(swh, dict):
+        if swh.get(target):
+            app_section['slack_webhook_url'] = swh[target]
+    elif swh:
+        app_section['slack_webhook_url'] = swh
     app_section['env'] = target
     result['app'] = app_section
 
