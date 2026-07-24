@@ -144,9 +144,9 @@ GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'zeiterfassung'@'loca
 -- the live biblio DB user already carries the full grant set; see backlog
 -- task-high.1). Only the new table's grant is added here, other apps later.
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'biblio'@'localhost';
--- Replikations-Ziel-Verwaltung (TASK-22, bi_repl_ziel): App macht nur
--- SELECT/INSERT/UPDATE (die UI löscht keine Ziele — daher kein DELETE).
-GRANT SELECT, INSERT, UPDATE ON jardyx.bi_repl_ziel TO 'biblio'@'localhost';
+-- Replikations-Ziel-Verwaltung (TASK-22/35, bi_repl_ziel): der Admin-Tab
+-- „Replikation" legt Ziele an, bearbeitet UND löscht sie → volles CRUD.
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.bi_repl_ziel TO 'biblio'@'localhost';
 -- Genres (Plan 2, bi_genre/bi_buch_genre): bi_genre = kontrolliertes Vokabular,
 -- seit der Genre-Verwaltung (2026-07-23) von der App schreibbar (anlegen/umbenennen/
 -- löschen/sortieren); bi_buch_genre = Zuordnung, volle CRUD.
