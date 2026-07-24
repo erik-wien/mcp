@@ -67,7 +67,12 @@ RSYNC_OPTS=(
     --exclude="package.json"
     --exclude="tailwind.config.js"
     --exclude="tailwindcss"
-    --exclude="scripts/"
+    # scripts/ grundsätzlich raus (Einmal-Migrationen/Seeds/Dev-Tools), AUSSER
+    # Produktions-Cron-Entrypoints (*_cron.php) — die müssen auf dem Hub laufen.
+    # Include vor Exclude (first-match-wins), analog zum docs/-Block oben.
+    --include="/scripts/"
+    --include="/scripts/*_cron.php"
+    --exclude="/scripts/**"
     --exclude="tests/"
     --exclude="deprecated/"
     # (docs/ wird jetzt selektiv einbezogen — siehe Include-Block oben; der
