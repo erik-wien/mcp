@@ -73,6 +73,7 @@ GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'simplech
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'simplechat'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'simplechat'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'simplechat'@'localhost';
 
 -- wlmonitor ──────────────────────────────────────────────────────────────────
 GRANT SELECT, INSERT, UPDATE         ON jardyx.auth_accounts        TO 'wlmonitor'@'localhost';
@@ -81,6 +82,7 @@ GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'wlmonito
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'wlmonitor'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_sessions          TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_favorites         TO 'wlmonitor'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.wl_log               TO 'wlmonitor'@'localhost';
@@ -99,6 +101,7 @@ GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'zeiterfa
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'zeiterfassung'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_chkReasons            TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_cron                  TO 'zeiterfassung'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.zeit_user                  TO 'zeiterfassung'@'localhost';
@@ -113,6 +116,7 @@ GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'energie'
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'energie'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.readings             TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.tariff_config        TO 'energie'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.daily_summary        TO 'energie'@'localhost';
@@ -126,6 +130,7 @@ GRANT SELECT, INSERT                 ON jardyx.auth_log             TO 'suche'@'
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets      TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens   TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens TO 'suche'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_buttons            TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_feeds              TO 'suche'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.s_db_migrations      TO 'suche'@'localhost';
@@ -140,6 +145,9 @@ GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'energie'@'localhost'
 GRANT SELECT, DELETE         ON jardyx.auth_sso_tickets TO 'zeiterfassung'@'localhost';
 
 -- biblio — auth_api_tokens only (Token-Auth T1, 2026-07-12) ──────────────────
+-- Hinweis 2026-07-25: auth_api_tokens gilt inzwischen fuer ALLE Apps (Token-
+-- Verwaltung auf der Profilseite, Chrome\ApiTokens) — die Grants stehen jeweils
+-- neben dem auth_remember_tokens-Grant der App.
 -- NOTE: grant-db-users.sql has no full biblio section yet (pre-existing drift —
 -- the live biblio DB user already carries the full grant set; see backlog
 -- task-high.1). Only the new table's grant is added here, other apps later.
@@ -162,6 +170,7 @@ GRANT SELECT, INSERT                 ON jardyx.auth_log              TO 'lastfm'
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.password_resets       TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_invite_tokens    TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_remember_tokens  TO 'lastfm'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.auth_api_tokens  TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_albums            TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_artists           TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_played_tracks     TO 'lastfm'@'localhost';
