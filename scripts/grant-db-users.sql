@@ -179,4 +179,23 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_user_credentials  TO 'lastfm'
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_weekly_charts     TO 'lastfm'@'localhost';
 GRANT SELECT, INSERT, UPDATE, DELETE ON jardyx.lfm_year_imports      TO 'lastfm'@'localhost';
 
+-- authadmin — privilegierte Loeschverbindung (Spec 2026-07-25 §3.4) ──────────
+--
+-- Ausschliesslich fuer das DELETE auf Konten. Die sieben App-User behalten
+-- bewusst KEIN DELETE auf auth_accounts (Auth-Rules §8) — admin_delete_user()
+-- holt sich diese Verbindung ueber auth_privileged_con().
+--
+-- SELECT ist noetig, weil affected_rows nicht zwischen "Zeile fehlte" und
+-- "nichts geaendert" unterscheidet (Lehre aus auth TASK-4), und weil der
+-- Letzter-Admin-Schutz die verbleibenden Admins zaehlen muss.
+--
+-- <PASSWORT> steht hier nur als Platzhalter; das echte Passwort liegt in
+-- mcp/config.yaml unter shared.auth_admin_db (gitignored).
+--
+-- world4you: dort NICHT anlegbar (der Provider-User hat GRANT USAGE ON *.*,
+-- also keine globalen Rechte). Der Config-Block traegt dort bis auf Weiteres
+-- die auth_db-Zugangsdaten; offene Handlung fuer Erik im Provider-Panel.
+CREATE USER IF NOT EXISTS 'authadmin'@'localhost' IDENTIFIED BY '<PASSWORT>';
+GRANT SELECT, DELETE ON jardyx.auth_accounts TO 'authadmin'@'localhost';
+
 FLUSH PRIVILEGES;

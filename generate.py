@@ -68,6 +68,14 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     if auth_db is not None:
         result['auth_db'] = resolve_db(auth_db, target)
 
+    # Privileged delete connection (Spec 2026-07-25 §3.5) ─────────────────────
+    # Shared across all apps — it is one narrowly-privileged user (authadmin),
+    # not one per app. admin_delete_user() uses it because the app users
+    # deliberately lack DELETE on auth_accounts (Auth-Rules §8).
+    auth_admin_db = shared.get('auth_admin_db')
+    if auth_admin_db is not None:
+        result['auth_admin_db'] = resolve_db(auth_admin_db, target)
+
     # Slack: shared bot_token + app channel_id ────────────────────────────────
     if 'slack' in shared or 'slack' in app:
         slack = dict(shared.get('slack', {}))
