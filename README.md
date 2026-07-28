@@ -81,7 +81,7 @@ Deploys every registered app to the given target, failing fast on the first erro
 
 ## Shared mail config
 
-`deploy.py --mail-ini <target>` writes the host-level `jardyx-mail.ini` consumed by `erikr/auth`'s `load_mail_config()`. On `local` and `akadbrain` this lands at `/opt/homebrew/etc/jardyx-mail.ini`. On `world4you` the file is placed manually once (see `docs/jardyx-mail-ini-prod.md`) because shared hosting has no writable `/etc` path.
+`deploy.py --mail-ini <target>` writes the host-level `jardyx-mail.ini` consumed by `erikr/auth`'s `load_mail_config()`. On `local` and `akadbrain` this lands at `/opt/homebrew/etc/jardyx-mail.ini`. `world4you` has no writable `/etc` path — and `open_basedir` confines PHP to the site's web tree — so each app gets its own `mail.ini` next to its `config.yaml` instead, written automatically on every deploy (`write_app_mail_ini()`). Until 2026-07-28 that file was never placed at all, so no app on jardyx.com could send mail; see [`docs/jardyx-mail-ini-prod.md`](docs/jardyx-mail-ini-prod.md).
 
 ## Database grants
 

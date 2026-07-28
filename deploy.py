@@ -20,13 +20,26 @@ APPS_ROOT = REPO_ROOT.parent
 LIB = REPO_ROOT / 'lib'
 
 # Host-level SMTP config consumed by erikr/auth load_mail_config().
-# Local + akadbrain are macOS + Homebrew → /opt/homebrew/etc. world4you is
-# shared hosting; no writeable /etc path, so the file must be placed manually
-# once (see docs/jardyx-mail-ini-prod.md) and we skip it here.
+# Local + akadbrain are macOS + Homebrew → /opt/homebrew/etc.
 MAIL_INI_PATHS = {
     'local':     '/opt/homebrew/etc/jardyx-mail.ini',
     'akadbrain': '/opt/homebrew/etc/jardyx-mail.ini',
 }
+
+# Targets that get a PER-APP mail.ini next to the app's config.yaml instead of
+# one host-level file. world4you is shared hosting: neither /etc nor /opt is
+# writable, AND open_basedir confines PHP to the site's web tree plus ~/tmp —
+# so even a file in the home directory would be unreadable. The app directory
+# is inside that tree but above the document root (…/<app>/web), so it is not
+# served: …/<app>/config.yaml answers HTTP 404 (verified 2026-07-28).
+#
+# erikr/auth finds it via AUTH_MAIL_CONFIG_PATH, which each app defines in
+# inc/initialize.php. See docs/jardyx-mail-ini-prod.md.
+#
+# Until 2026-07-28 this file was never placed on world4you at all, so no app
+# there could send invitations or password resets. The comment here pointed at
+# a documentation file that did not exist. auth TASK-6.
+APP_MAIL_INI_TARGETS = {'world4you'}
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -47,14 +60,35 @@ def _render_mail_ini(smtp: dict) -> str:
     return '\n'.join(lines) + '\n'
 
 
+def write_app_mail_ini(config: dict, app: str, target: str) -> None:
+    """Write <app>/mail.ini on targets that have no host-level path (world4you).
+
+    Pulls credentials from shared.smtp, same source as the host-level file.
+    The remote path mirrors scripts/ssh_deploy.php: web/<ftp_base_dir>/mail.ini,
+    i.e. right next to the app's config.yaml and above the document root.
+
+    The file is excluded from the deploy rsync (see each app's ssh_deploy.php),
+    so it is neither uploaded from the repo nor removed by --delete."""
+    if target not in APP_MAIL_INI_TARGETS:
+        return
+    base = config['apps'][app].get('deploy', {}).get(target, {}).get('ftp_base_dir')
+    if not base:
+        print(f'  WARNING: no ftp_base_dir for {app}/{target}; mail.ini not written',
+              file=sys.stderr)
+        return
+    dest = 'web' + base.rstrip('/') + '/mail.ini'
+    body = _render_mail_ini(config['shared']['smtp'])
+    _write_remote_mail_ini(config, target, dest, body, mode='600')
+
+
 def write_jardyx_mail_ini(target: str, config: dict) -> None:
     """Write /opt/homebrew/etc/jardyx-mail.ini (or remote equivalent) for target.
 
-    Pulls credentials from shared.smtp. Writes chmod 0640. Skips targets that
-    do not have a managed path (e.g. world4you shared hosting)."""
+    Pulls credentials from shared.smtp. Writes chmod 0640. Targets without a
+    host-level path get a per-app file instead — see write_app_mail_ini()."""
     dest = MAIL_INI_PATHS.get(target)
     if dest is None:
-        print(f'  (skipping jardyx-mail.ini on {target} — managed manually)')
+        print(f'  (no host-level mail ini on {target} — written per app instead)')
         return
 
     smtp = config['shared']['smtp']
@@ -77,7 +111,8 @@ def _write_local_mail_ini(dest: str, body: str) -> None:
     print(f'  wrote {dest}')
 
 
-def _write_remote_mail_ini(config: dict, target: str, dest: str, body: str) -> None:
+def _write_remote_mail_ini(config: dict, target: str, dest: str, body: str,
+                           mode: str = '640') -> None:
     t = config['shared']['targets'][target]
     ssh_host = t['ssh_host']
     ssh_user = t['ssh_user']
@@ -99,7 +134,7 @@ def _write_remote_mail_ini(config: dict, target: str, dest: str, body: str) -> N
             check=True,
         )
         subprocess.run(
-            ssh + [f'{ssh_user}@{ssh_host}', f'chmod 640 {dest}'],
+            ssh + [f'{ssh_user}@{ssh_host}', f'chmod {mode} {dest}'],
             check=True,
         )
         print(f'  wrote {ssh_user}@{ssh_host}:{dest}')
@@ -190,6 +225,9 @@ def do_deploy(config: dict, app: str, target: str) -> None:
     else:
         deploy_rsync_local(config, app, target)
         run_migrations(app)
+    # After the sync: the app directory has to exist, and the rsync excludes
+    # mail.ini anyway (auth TASK-6).
+    write_app_mail_ini(config, app, target)
 
 
 # ── CLI mode ──────────────────────────────────────────────────────────────────
