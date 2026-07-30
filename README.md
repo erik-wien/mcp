@@ -106,3 +106,26 @@ When publishing any `~/Git/*` repo to GitHub (first push, visibility flip, relea
 - `rsync` (for `local` + `akadbrain`)
 - SSH key configured for `akadbrain`
 - PHP available on `world4you` (FTP uploader is a PHP script)
+
+## SSH-Vorabprüfung (akadbrain über LAN)
+
+`deploy.py` prüft vor jedem Deploy auf ein Nicht-`local`-Ziel, ob der
+konfigurierte `ssh_host` per SSH antwortet. Tut er es nicht, wird der Name per
+`ping` zu einer IPv4 aufgelöst und **nur für diesen Lauf im Speicher** benutzt —
+`config.yaml` wird nicht angefasst.
+
+Der konkrete Anlass: `~/.ssh/config` bindet `akadbrain` **und** `akadbrain.local`
+an `akadbrain.taild67bb4.ts.net`. Ist Tailscale gestoppt, löst der Name nicht
+auf und jeder akadbrain-Deploy scheitert mit `exit 255`, obwohl der Host im LAN
+antwortet. Eine IP-Adresse umgeht die Host-Muster der SSH-Konfiguration, also
+genau die Ursache.
+
+**Identitätsnachweis:** die Ausweichadresse stammt aus einer mDNS-Antwort, nicht
+aus der Konfiguration. Bevor sie benutzt wird, muss das erwartete
+Zielverzeichnis (`apps.<app>.deploy.<target>.dest`) dort existieren — sonst
+bricht der Deploy ab. Ohne diese Prüfung könnte ein Deploy auf einer fremden
+Maschine landen, die zufällig denselben Namen beantwortet und den Schlüssel
+akzeptiert.
+
+Die Meldung nennt Ausweichadresse und Beleg, damit die eigentliche Ursache nicht
+unbemerkt bleibt (`tailscale status`).

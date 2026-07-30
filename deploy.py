@@ -8,6 +8,7 @@ Usage:
 """
 
 import argparse
+import re
 import subprocess
 import sys
 import tempfile
@@ -48,6 +49,95 @@ def load_config() -> dict:
     path = REPO_ROOT / 'config.yaml'
     with open(path) as f:
         return yaml.safe_load(f)
+
+
+# ── SSH-Vorabpruefung ─────────────────────────────────────────────────────────
+
+def _ssh_reachable(host: str, user: str, key: str, timeout: int = 6) -> bool:
+    """True, wenn eine BatchMode-SSH-Sitzung zustande kommt."""
+    cmd = ['ssh', '-o', 'BatchMode=yes', '-o', f'ConnectTimeout={timeout}']
+    if key:
+        cmd += ['-i', str(Path(key).expanduser())]
+    cmd += [f'{user}@{host}' if user else host, 'true']
+    try:
+        return subprocess.run(cmd, capture_output=True, timeout=timeout + 6).returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+
+
+def _resolve_ipv4(host: str) -> str | None:
+    """IPv4 zu einem Hostnamen, per ping ermittelt (deckt auch mDNS/.local ab).
+
+    Bewusst NICHT socket.gethostbyname(): das scheitert an genau demselben
+    DNS-Problem, das wir umgehen wollen, wenn ~/.ssh/config den Namen auf einen
+    anderen (nicht aufloesbaren) Hostnamen umschreibt. ping loest den ORIGINALEN
+    Namen auf, unbeeinflusst von der SSH-Konfiguration.
+    """
+    try:
+        r = subprocess.run(['ping', '-c', '1', '-t', '2', host],
+                           capture_output=True, text=True, timeout=8)
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+    m = re.search(r'\((\d{1,3}(?:\.\d{1,3}){3})\)', r.stdout)
+    return m.group(1) if m else None
+
+
+def _has_path(host: str, user: str, key: str, path: str) -> bool:
+    """True, wenn $path auf dem Host als Verzeichnis existiert."""
+    cmd = ['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=6']
+    if key:
+        cmd += ['-i', str(Path(key).expanduser())]
+    cmd += [f'{user}@{host}' if user else host, f'test -d {path}']
+    try:
+        return subprocess.run(cmd, capture_output=True, timeout=15).returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+
+
+def preflight_ssh(config: dict, target: str, expect_path: str | None = None) -> None:
+    """Sichert, dass der Ziel-Host per SSH erreichbar ist — sonst Ausweichadresse.
+
+    Hintergrund: ~/.ssh/config bindet 'akadbrain' UND 'akadbrain.local' an den
+    Tailscale-Namen akadbrain.taild67bb4.ts.net. Ist Tailscale gestoppt, loest
+    der Name nicht auf und JEDER Deploy scheitert mit exit 255 — obwohl der Host
+    im LAN antwortet. Bisher musste man dafuer von Hand die config.yaml
+    umbiegen; das ist fehleranfaellig (bleibt bei einem Abbruch verbogen stehen)
+    und muss bei jedem Deploy wiederholt werden.
+
+    Wir aendern die config.yaml NICHT: die Ausweichadresse gilt nur im Speicher
+    und nur fuer diesen Lauf. Eine IP-Adresse umgeht zusaetzlich die
+    Host-Muster in ~/.ssh/config, also genau die Ursache.
+    """
+    t = config.get('shared', {}).get('targets', {}).get(target)
+    if not t or not t.get('ssh_host'):
+        return
+    host = t['ssh_host']
+    user = t.get('ssh_user', '')
+    key  = t.get('ssh_key', '')
+
+    if _ssh_reachable(host, user, key):
+        return
+
+    ip = _resolve_ipv4(host)
+    if ip and ip != host and _ssh_reachable(ip, user, key):
+        # Identitaetsnachweis, bevor irgendetwas geschrieben wird: die
+        # Ausweichadresse stammt aus einer mDNS-/Broadcast-Antwort, nicht aus
+        # der Konfiguration. Ohne Pruefung koennte ein Deploy auf einer
+        # fremden Maschine landen, die zufaellig denselben Namen beantwortet
+        # und unseren Schluessel akzeptiert. Das erwartete Zielverzeichnis ist
+        # ein billiger, aber wirksamer Beleg, dass es der richtige Host ist.
+        if expect_path and not _has_path(ip, user, key, expect_path):
+            print(f'  ABBRUCH: {ip} antwortet auf SSH, aber {expect_path} existiert dort '
+                  f'nicht — das ist nicht {host}.', file=sys.stderr)
+            sys.exit(1)
+        beleg = f', {expect_path} vorhanden' if expect_path else ''
+        print(f'  {host} per SSH nicht erreichbar — weiche fuer diesen Lauf auf {ip} aus{beleg}')
+        print('  (config.yaml bleibt unveraendert; Ursache pruefen, z. B. "tailscale status")')
+        t['ssh_host'] = ip
+        return
+
+    print(f'  WARNUNG: {host} antwortet nicht auf SSH und es gibt keine erreichbare '
+          f'Ausweichadresse — der Deploy wird vermutlich scheitern.', file=sys.stderr)
 
 
 # ── Shared mail ini ───────────────────────────────────────────────────────────
@@ -249,6 +339,9 @@ def cli_deploy(app: str, target: str) -> None:
         )
         sys.exit(1)
 
+    if target != 'local':
+        preflight_ssh(config, target,
+                      apps[app].get('deploy', {}).get(target, {}).get('dest'))
     print(f'\n→ Generating config: {app} ({target})...')
     run_generate(app, target)
     print(f'→ Deploying {app} → {target}...')
