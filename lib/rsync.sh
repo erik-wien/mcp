@@ -40,7 +40,7 @@ RSYNC_OPTS=(
     --exclude=".worktrees/"
     --exclude=".superpowers/"
     --exclude="backlog/"
-    --exclude="firmware/"
+    --exclude="epaper-monitor/"
     --exclude="CLAUDE.md"
     # Protect the erikr/auth mail templates (Markdown) from the blanket *.md
     # exclude below — first-match-wins, so this include MUST precede it. Without
