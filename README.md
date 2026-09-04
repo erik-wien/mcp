@@ -79,6 +79,37 @@ Mechanisms:
 
 Deploys every registered app to the given target, failing fast on the first error.
 
+## `example_extra` — documentation that survives regeneration
+
+`generate.py` rewrites `config.example.yaml` with `yaml.dump`, and `yaml.dump`
+cannot preserve comments. A comment added by hand to a generated example file
+is therefore deleted silently on the next run — this happened to a documented
+`nginx_log` block in `suche/config.example.yaml`, which disappeared unnoticed
+over several runs (found 2026-09-04).
+
+Commented-out optional settings that an app reads itself but that carry no
+value in the central config belong in `apps.<name>.example_extra`. The text is
+appended verbatim to `config.example.yaml` and never reaches `config.yaml`.
+
+```yaml
+apps:
+  suche:
+    example_extra: |
+      # nginx_log:                         # optional — overrides inc/nginx_log.php's per-host defaults
+      #   access: /var/log/nginx/suche.access.log
+```
+
+> **`skip` in `resolve_app_config()` is a DENY list, not an allow list.** Every
+> app key *not* listed there is passed through verbatim into both generated
+> files. A new purely-controlling key must be added to `skip`.
+
+**Not under version control:** `config.yaml` is gitignored (it holds real
+credentials) and has no versioned counterpart, so the *content* of
+`example_extra` lives only on the machine where it was entered. One entry
+exists today: `apps.suche.example_extra`, carrying the `nginx_log` block that
+belongs to `suche/inc/nginx_log.php`. If `config.yaml` is ever lost, it has to
+be re-entered there.
+
 ## Shared mail config
 
 `deploy.py --mail-ini <target>` writes the host-level `jardyx-mail.ini` consumed by `erikr/auth`'s `load_mail_config()`. On `local` and `akadbrain` this lands at `/opt/homebrew/etc/jardyx-mail.ini`. `world4you` has no writable `/etc` path — and `open_basedir` confines PHP to the site's web tree — so each app gets its own `mail.ini` next to its `config.yaml` instead, written automatically on every deploy (`write_app_mail_ini()`). Until 2026-07-28 that file was never placed at all, so no app on jardyx.com could send mail; see [`docs/jardyx-mail-ini-prod.md`](docs/jardyx-mail-ini-prod.md).
