@@ -11,3 +11,6 @@ update.md
 .env
 .env.*
 venv/
+
+# Lokale Testumgebung (s. requirements-dev.txt)
+.venv/
