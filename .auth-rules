@@ -1,0 +1,3 @@
+# Opt-in for ~/.claude/hooks/auth-rules-inject.py: no composer.json here, but
+# grant-db-users.sql, deploy-sso.sh and generate.py touch auth_accounts,
+# auth_log and password_resets — inside the auth rules stated scope.
