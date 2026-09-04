@@ -237,3 +237,68 @@ def test_update_md_no_legacy():
 
 # (write_app_svgs removed — per-app logo/favicon generation retired in favour of
 #  central css_library/logos/ assets; see the TASK-19 harmonisation design doc.)
+
+
+# ── example_extra: handgeschriebene Doku ueberlebt den Generatorlauf ──────────
+#
+# Vorgeschichte (2026-09-04): config.example.yaml entsteht per yaml.dump neu,
+# und yaml.dump kann Kommentare strukturell nicht erhalten. Ein von Hand in
+# suche/config.example.yaml ergaenzter nginx_log-Doku-Block wurde deshalb bei
+# JEDEM Lauf still geloescht -- aufgefallen erst, als der Verlust im Diff
+# eines ganz anderen Commits mitlief.
+
+def test_example_extra_never_reaches_the_generated_config():
+    """Der Anhangstext ist Dokumentation, kein Konfigurationswert.
+
+    skip in resolve_app_config() ist eine DENY-Liste: jeder nicht genannte
+    App-Schluessel wird woertlich durchgereicht. Ohne Eintrag stand
+    example_extra zusaetzlich als YAML-Schluessel in config.yaml UND
+    config.example.yaml -- beim ersten Lauf genau so passiert.
+    """
+    cfg = copy.deepcopy(FIXTURE)
+    cfg['apps']['flatdb']['example_extra'] = '# optional_key: value\n'
+
+    result = resolve_app_config(cfg, 'flatdb', 'local')
+
+    assert 'example_extra' not in result
+
+
+def test_example_extra_is_appended_to_the_example_file(tmp_path, monkeypatch):
+    """Und er muss im Beispiel WIRKLICH ankommen -- sonst waere die Doku
+    zwar nicht mehr geloescht, aber auch nirgends zu sehen."""
+    import generate
+
+    app_dir = tmp_path / 'flatdb'
+    app_dir.mkdir()
+    monkeypatch.setattr(generate, 'APPS_ROOT', tmp_path)
+
+    cfg = copy.deepcopy(FIXTURE)
+    cfg['apps']['flatdb']['example_extra'] = (
+        '# nginx_log:            # optional\n'
+        '#   access: /var/log/nginx/x.log\n'
+    )
+
+    generate.write_app_files(cfg, 'flatdb', 'local')
+
+    beispiel = (app_dir / 'config.example.yaml').read_text()
+    assert '# nginx_log:' in beispiel
+    assert '#   access: /var/log/nginx/x.log' in beispiel
+    # Genau einmal -- nicht zusaetzlich als YAML-Schluessel weiter oben.
+    assert beispiel.count('# nginx_log:') == 1
+
+    # Und die echte Konfiguration bleibt frei davon.
+    assert 'nginx_log' not in (app_dir / 'config.yaml').read_text()
+
+
+def test_apps_without_example_extra_are_unchanged(tmp_path, monkeypatch):
+    """Der Normalfall darf keinen Leerraum-Anhang bekommen."""
+    import generate
+
+    app_dir = tmp_path / 'flatdb'
+    app_dir.mkdir()
+    monkeypatch.setattr(generate, 'APPS_ROOT', tmp_path)
+
+    generate.write_app_files(copy.deepcopy(FIXTURE), 'flatdb', 'local')
+
+    beispiel = (app_dir / 'config.example.yaml').read_text()
+    assert not beispiel.endswith('\n\n\n')

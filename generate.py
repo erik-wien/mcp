@@ -104,7 +104,14 @@ def resolve_app_config(config: dict, app_name: str, target: str) -> dict:
     result['app'] = app_section
 
     # App-specific extras (hofer, wienenergie, custom sections …) ─────────────
-    skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db'}
+    # ACHTUNG: das ist eine DENY-Liste. Jeder hier nicht genannte App-Schluessel
+    # landet woertlich in config.yaml UND config.example.yaml -- so kommen die
+    # app-spezifischen Extras (hofer, wienenergie, resolver ...) ins Ergebnis.
+    # example_extra gehoert NICHT dazu: es ist reiner Anhangstext fuer die
+    # Beispieldatei (s. write_app_files()) und stuende sonst zusaetzlich als
+    # YAML-Schluessel in beiden Dateien -- beim ersten Lauf genau so passiert.
+    skip = {'targets', 'deploy', 'db', 'smtp', 'slack', 'app', 'legacy_config', 'auth_db',
+            'example_extra'}
     for key, value in app.items():
         if key not in skip:
             result[key] = value
@@ -203,10 +210,27 @@ def write_app_files(config: dict, app_name: str, target: str) -> None:
     print(f'  wrote {app_name}/config.yaml')
 
     # config.example.yaml — sanitized placeholders
+    #
+    # Optionale, NICHT zentral gepflegte Schluessel werden aus
+    # apps.<name>.example_extra woertlich angehaengt. Grund: diese Datei
+    # entsteht per yaml.dump neu, und yaml.dump kann Kommentare strukturell
+    # nicht erhalten -- ein von Hand ergaenzter Doku-Block wurde deshalb bei
+    # JEDEM Lauf still geloescht (in suche/config.example.yaml am 2026-09-04
+    # bemerkt: der dokumentierte nginx_log-Block war seit einem frueheren
+    # Lauf weg, ohne dass es jemandem auffiel).
+    #
+    # example_extra steht bewusst NUR in der Beispieldatei, nicht in
+    # config.yaml: es beschreibt auskommentierte Kann-Einstellungen, die die
+    # App selbst liest, die aber keinen Wert in der zentralen Konfiguration
+    # haben. resolve_app_config() fuehrt eine Allowlist -- der Schluessel
+    # kann also gar nicht versehentlich in config.yaml landen.
     example_path = app_dir / 'config.example.yaml'
     with open(example_path, 'w') as f:
         f.write('# Config template — copy to config.yaml and fill in your values\n\n')
         yaml.dump(sanitize(resolved), f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        extra = app_cfg.get('example_extra')
+        if extra:
+            f.write('\n' + extra.rstrip('\n') + '\n')
     print(f'  wrote {app_name}/config.example.yaml')
 
     # update.md — migration brief for local Claude
